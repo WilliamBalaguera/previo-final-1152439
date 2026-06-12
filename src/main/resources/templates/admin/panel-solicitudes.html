@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Panel de Solicitudes — Admin</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; }
+
+        header {
+            background: #1a237e; color: white;
+            padding: 1rem 2rem;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        header h1 { font-size: 1.3rem; }
+        header span { font-size: 0.9rem; opacity: 0.8; }
+        header a { color: #90caf9; text-decoration: none; margin-left: 1rem; }
+
+        main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+
+        /* ── Indicadores ── */
+        .indicadores {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .card {
+            background: white; border-radius: 10px;
+            padding: 1.5rem; text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-top: 4px solid #ccc;
+        }
+        .card.total   { border-color: #1a237e; }
+        .card.pendiente { border-color: #f59e0b; }
+        .card.aprobada  { border-color: #10b981; }
+        .card.rechazada { border-color: #ef4444; }
+
+        .card .numero { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.3rem; }
+        .card.total    .numero { color: #1a237e; }
+        .card.pendiente .numero { color: #f59e0b; }
+        .card.aprobada  .numero { color: #10b981; }
+        .card.rechazada .numero { color: #ef4444; }
+
+        .card .etiqueta { font-size: 0.9rem; color: #666; text-transform: uppercase; letter-spacing: 0.05em; }
+
+        /* ── Tabla ── */
+        .tabla-section h2 { margin-bottom: 1rem; color: #1a237e; }
+        table { width: 100%; border-collapse: collapse; background: white;
+                border-radius: 10px; overflow: hidden;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        thead { background: #1a237e; color: white; }
+        th, td { padding: 0.85rem 1rem; text-align: left; font-size: 0.9rem; }
+        tbody tr:nth-child(even) { background: #f9fafb; }
+        tbody tr:hover { background: #eef2ff; }
+
+        /* ── Badges de estado ── */
+        .badge {
+            display: inline-block; padding: 0.25rem 0.7rem;
+            border-radius: 999px; font-size: 0.8rem; font-weight: 600;
+        }
+        .badge-pendiente  { background: #fef3c7; color: #92400e; }
+        .badge-aprobada   { background: #d1fae5; color: #065f46; }
+        .badge-rechazada  { background: #fee2e2; color: #991b1b; }
+
+        /* filas con fondo suave según estado */
+        tr.fila-pendiente  td:first-child { border-left: 4px solid #f59e0b; }
+        tr.fila-aprobada   td:first-child { border-left: 4px solid #10b981; }
+        tr.fila-rechazada  td:first-child { border-left: 4px solid #ef4444; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>⚙️ Panel de Administración — Solicitudes</h1>
+    <span>
+        Sesión: <strong sec:authentication="name">usuario</strong>
+        <a th:href="@{/logout}">Cerrar sesión</a>
+    </span>
+</header>
+
+<main>
+
+    <!-- ── Indicadores ── -->
+    <div class="indicadores">
+        <div class="card total">
+            <div class="numero" th:text="${total}">0</div>
+            <div class="etiqueta">Total</div>
+        </div>
+        <div class="card pendiente">
+            <div class="numero" th:text="${pendientes}">0</div>
+            <div class="etiqueta">Pendientes</div>
+        </div>
+        <div class="card aprobada">
+            <div class="numero" th:text="${aprobadas}">0</div>
+            <div class="etiqueta">Aprobadas</div>
+        </div>
+        <div class="card rechazada">
+            <div class="numero" th:text="${rechazadas}">0</div>
+            <div class="etiqueta">Rechazadas</div>
+        </div>
+    </div>
+
+    <!-- ── Tabla ── -->
+    <div class="tabla-section">
+        <h2>Todas las Solicitudes</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Usuario solicitante</th>
+                    <th>Tipo</th>
+                    <th>Descripción</th>
+                    <th>Estado</th>
+                    <th>Fecha creación</th>
+                    <th>Observación</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:if="${#lists.isEmpty(solicitudes)}">
+                    <td colspan="7" style="text-align:center;color:#999;padding:2rem">
+                        No hay solicitudes registradas.
+                    </td>
+                </tr>
+                <tr th:each="s : ${solicitudes}"
+                    th:classappend="${s.estado.name() == 'PENDIENTE'  ? 'fila-pendiente'  :
+                                     s.estado.name() == 'APROBADA'   ? 'fila-aprobada'   :
+                                                                        'fila-rechazada'}">
+                    <td th:text="${s.id}"></td>
+                    <td th:text="${s.solicitante}"></td>
+                    <td th:text="${s.tipo}"></td>
+                    <td th:text="${s.descripcion}" style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></td>
+                    <td>
+                        <span class="badge"
+                              th:classappend="${s.estado.name() == 'PENDIENTE'  ? 'badge-pendiente'  :
+                                               s.estado.name() == 'APROBADA'   ? 'badge-aprobada'   :
+                                                                                  'badge-rechazada'}"
+                              th:text="${s.estado}">
+                        </span>
+                    </td>
+                    <td th:text="${#temporals.format(s.fechaCreacion, 'dd/MM/yyyy HH:mm')}"></td>
+                    <td th:text="${s.observacion != null ? s.observacion : '—'}"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</main>
+</body>
+</html>
